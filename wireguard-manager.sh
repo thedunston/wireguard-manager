@@ -752,7 +752,7 @@ if [ ! -f "${WIREGUARD_CONFIG}" ]; then
         yum install kernel-headers-"$(uname -r)" kernel-devel-"$(uname -r)" -y
       elif [ "${CURRENT_DISTRO}" == "fedora" ]; then
         dnf update -y
-        dnf install
+        dnf install kernel-headers-"$(uname -r)" kernel-devel-"$(uname -r)" -y
       fi
     else
       echo "Correct: You do not need kernel headers." >>/dev/null
