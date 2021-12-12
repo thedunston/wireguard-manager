@@ -1319,8 +1319,7 @@ PublicKey = ${SERVER_PUBKEY}" >>${WIREGUARD_CLIENT_PATH}/"${NEW_CLIENT_NAME}"-${
       crontab -l | grep -v "$(realpath "${0}")" | crontab -
       ;;
     9) # Update the script
-      CURRENT_FILE_PATH="$(realpath "${0}")"
-      curl -o "${CURRENT_FILE_PATH}" ${WIREGUARD_MANAGER_UPDATE}
+      curl ${WIREGUARD_MANAGER_UPDATE} -o "$(realpath "${0}")"
       chmod +x "${CURRENT_FILE_PATH}"
       # Update the unbound configs
       if [ -x "$(command -v unbound)" ]; then
