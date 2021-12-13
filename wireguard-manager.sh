@@ -868,7 +868,7 @@ if [ ! -f "${WIREGUARD_CONFIG}" ]; then
         elif [ "${CURRENT_DISTRO}" == "freebsd" ]; then
           pkg install unbound resolvconf
         elif [ "${CURRENT_DISTRO}" == "ol" ]; then
-          dnf install unbound resolvconf -y
+          dnf install unbound -y
         fi
       fi
       unbound-anchor -a ${UNBOUND_ANCHOR}
