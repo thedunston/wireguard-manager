@@ -797,34 +797,14 @@ if [ ! -f "${WIREGUARD_CONFIG}" ]; then
   # Install WireGuard Server
   function install-wireguard-server() {
     if [ ! -x "$(command -v wg)" ]; then
-      if [ "${CURRENT_DISTRO}" == "ubuntu" ] && [ "${CURRENT_DISTRO_VERSION%.*}" -ge 21 ]; then
+      if { [ "${CURRENT_DISTRO}" == "ubuntu" ] || [ "${CURRENT_DISTRO}" == "debian" ] || [ "${CURRENT_DISTRO}" == "raspbian" ] || [ "${CURRENT_DISTRO}" == "kali" ] || [ "${CURRENT_DISTRO}" == "pop" ] || [ "${CURRENT_DISTRO}" == "linuxmint" ] || [ "${CURRENT_DISTRO}" == "neon" ]; }; then
         apt-get update
-        apt-get install wireguard -y
-      elif [ "${CURRENT_DISTRO}" == "ubuntu" ] && [ "${CURRENT_DISTRO_VERSION%.*}" -le 20 ]; then
-        apt-get update
-        apt-get install software-properties-common -y
-        add-apt-repository ppa:wireguard/wireguard -y
-        apt-get update
-        apt-get install wireguard -y
-      elif { [ "${CURRENT_DISTRO}" == "pop" ] || [ "${CURRENT_DISTRO}" == "linuxmint" ] || [ "${CURRENT_DISTRO}" == "neon" ]; }; then
-        apt-get update
-        apt-get install wireguard -y
-      elif { [ "${CURRENT_DISTRO}" == "debian" ] || [ "${CURRENT_DISTRO}" == "kali" ]; }; then
-        apt-get update
-        if { [ "${CURRENT_DISTRO}" == "debian" ] && [ "${CURRENT_DISTRO_VERSION%.*}" -le 11 ]; }; then
+        if { [ "${CURRENT_DISTRO}" == "debian" ] && [ "${CURRENT_DISTRO_VERSION%.*}" -le 11 ] || [ "${CURRENT_DISTRO}" == "raspbian" ]; }; then
           if [ ! -f "/etc/apt/sources.list.d/backports.list" ]; then
             echo "deb http://deb.debian.org/debian buster-backports main" >>/etc/apt/sources.list.d/backports.list
             apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 648ACFD622F3D138
             apt-get update
           fi
-        fi
-        apt-get install wireguard -y
-      elif [ "${CURRENT_DISTRO}" == "raspbian" ]; then
-        apt-get update
-        if [ ! -f "/etc/apt/sources.list.d/backports.list" ]; then
-          echo "deb http://deb.debian.org/debian buster-backports main" >>/etc/apt/sources.list.d/backports.list
-          apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 648ACFD622F3D138
-          apt-get update
         fi
         apt-get install wireguard -y
       elif { [ "${CURRENT_DISTRO}" == "arch" ] || [ "${CURRENT_DISTRO}" == "archarm" ] || [ "${CURRENT_DISTRO}" == "manjaro" ]; }; then
@@ -1254,45 +1234,40 @@ PublicKey = ${SERVER_PUBKEY}" >>${WIREGUARD_CLIENT_PATH}/"${NEW_CLIENT_NAME}"-${
         rm -f ${WIREGUARD_IP_FORWARDING_CONFIG}
       fi
       if { [ "${CURRENT_DISTRO}" == "centos" ] || [ "${CURRENT_DISTRO}" == "almalinux" ] || [ "${CURRENT_DISTRO}" == "rocky" ]; }; then
-        yum remove wireguard qrencode haveged -y
-      elif { [ "${CURRENT_DISTRO}" == "debian" ] || [ "${CURRENT_DISTRO}" == "kali" ]; }; then
-        apt-get remove --purge wireguard qrencode -y
-        if [ -f "/etc/apt/sources.list.d/backports.list" ]; then
-          rm -f /etc/apt/sources.list.d/backports.list
+        yum remove wireguard -y
+      elif { [ "${CURRENT_DISTRO}" == "debian" ] || [ "${CURRENT_DISTRO}" == "ubuntu" ] || [ "${CURRENT_DISTRO}" == "kali" ] || [ "${CURRENT_DISTRO}" == "pop" ] || [ "${CURRENT_DISTRO}" == "linuxmint" ] || [ "${CURRENT_DISTRO}" == "neon" ]; }; then
+        apt-get remove wireguard -y
+        if { [ "${CURRENT_DISTRO}" == "debian" ] || [ "${CURRENT_DISTRO}" == "raspbian" ]; }; then
+          if [ -f "/etc/apt/sources.list.d/backports.list" ]; then
+            rm -f /etc/apt/sources.list.d/backports.list
+            apt-key del 04EE7237B7D453EC
+          fi
         fi
-      elif { [ "${CURRENT_DISTRO}" == "pop" ] || [ "${CURRENT_DISTRO}" == "linuxmint" ] || [ "${CURRENT_DISTRO}" == "neon" ]; }; then
-        apt-get remove --purge wireguard qrencode haveged -y
-      elif [ "${CURRENT_DISTRO}" == "ubuntu" ]; then
-        apt-get remove --purge wireguard qrencode haveged -y
-        if [ -x "$(command -v service)" ]; then
-          service systemd-resolved enable
-          service systemd-resolved restart
-        elif [ -x "$(command -v systemctl)" ]; then
-          systemctl reenable systemd-resolved
-          systemctl restart systemd-resolved
-        fi
-      elif [ "${CURRENT_DISTRO}" == "raspbian" ]; then
-        apt-key del 04EE7237B7D453EC
-        apt-get remove --purge wireguard qrencode haveged -y
-        if [ -f "/etc/apt/sources.list.d/backports.list" ]; then
-          rm -f /etc/apt/sources.list.d/backports.list
+        if [ "${CURRENT_DISTRO}" == "ubuntu" ]; then
+          if [ -x "$(command -v service)" ]; then
+            service systemd-resolved enable
+            service systemd-resolved restart
+          elif [ -x "$(command -v systemctl)" ]; then
+            systemctl reenable systemd-resolved
+            systemctl restart systemd-resolved
+          fi
         fi
       elif { [ "${CURRENT_DISTRO}" == "arch" ] || [ "${CURRENT_DISTRO}" == "archarm" ] || [ "${CURRENT_DISTRO}" == "manjaro" ]; }; then
-        pacman -Rs --noconfirm wireguard-tools qrencode haveged
+        pacman -Rs --noconfirm wireguard-tools
       elif [ "${CURRENT_DISTRO}" == "fedora" ]; then
-        dnf remove wireguard qrencode haveged -y
+        dnf remove wireguard -y
         if [ -f "/etc/yum.repos.d/wireguard.repo" ]; then
           rm -f /etc/yum.repos.d/wireguard.repo
         fi
       elif [ "${CURRENT_DISTRO}" == "rhel" ]; then
-        yum remove wireguard qrencode haveged -y
+        yum remove wireguard -y
         if [ -f "/etc/yum.repos.d/wireguard.repo" ]; then
           rm -f /etc/yum.repos.d/wireguard.repo
         fi
       elif [ "${CURRENT_DISTRO}" == "alpine" ]; then
-        apk del wireguard-tools libqrencode haveged
+        apk del wireguard-tools
       elif [ "${CURRENT_DISTRO}" == "freebsd" ]; then
-        pkg delete wireguard libqrencode
+        pkg delete wireguard
       elif [ "${CURRENT_DISTRO}" == "ol" ]; then
         dnf remove wireguard -y
       fi
@@ -1321,7 +1296,7 @@ PublicKey = ${SERVER_PUBKEY}" >>${WIREGUARD_CLIENT_PATH}/"${NEW_CLIENT_NAME}"-${
         if { [ "${CURRENT_DISTRO}" == "centos" ] || [ "${CURRENT_DISTRO}" == "rhel" ]; }; then
           yum remove unbound -y
         elif { [ "${CURRENT_DISTRO}" == "debian" ] || [ "${CURRENT_DISTRO}" == "pop" ] || [ "${CURRENT_DISTRO}" == "ubuntu" ] || [ "${CURRENT_DISTRO}" == "raspbian" ] || [ "${CURRENT_DISTRO}" == "kali" ] || [ "${CURRENT_DISTRO}" == "linuxmint" ] || [ "${CURRENT_DISTRO}" == "neon" ]; }; then
-          apt-get remove --purge unbound -y
+          apt-get remove unbound -y
         elif { [ "${CURRENT_DISTRO}" == "arch" ] || [ "${CURRENT_DISTRO}" == "archarm" ] || [ "${CURRENT_DISTRO}" == "manjaro" ] || [ "${CURRENT_DISTRO}" == "almalinux" ] || [ "${CURRENT_DISTRO}" == "rocky" ]; }; then
           pacman -Rs --noconfirm unbound
         elif [ "${CURRENT_DISTRO}" == "fedora" ]; then
