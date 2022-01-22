@@ -1095,8 +1095,22 @@ else
       if [ -z "${NEW_CLIENT_NAME}" ]; then
         NEW_CLIENT_NAME="$(openssl rand -hex 50)"
       fi
-      LASTIPV4=$(grep "/32" ${WIREGUARD_CONFIG} | tail -n1 | awk '{print $3}' | cut -d "/" -f 1 | cut -d "." -f 4)
-      LASTIPV6=$(grep "/128" ${WIREGUARD_CONFIG} | tail -n1 | awk '{print $3}' | cut -d ":" -f 5 | cut -d "/" -f 1)
+      # See if there are any gaps in IPs.  Removing a user leaves an available IP.
+      UNUSED_IPS=$(egrep -o "^AllowedIPs = $(head -n1 ${WIREGUARD_CONFIG} | awk ' { print $2 } ' | cut -d\. -f1,2,3)\.[0-9]{1,3}" ${WIREGUARD_CONFIG} | awk ' { print $3 } ' | cut -d\. -f4 |  sort -n | awk '{for(i=p+1; i<$1; i++) print i} {p=$1}' | egrep -v '^1$')
+      # If there is an unused IP. Get the first one (especially, if there are more than one).
+      if [[ ${UNUSED_IPS} != "" ]]; then
+        LASTIPV4=$(echo "${UNUSED_IPS}" | head -n 1)
+        LASTIPV6=$(echo "${UNUSED_IPS}" | head -n 1)
+      else
+        # Else use the standard method
+        # Changed the order of getting the last IP
+        # to first sort IPs, due to the changes above
+        # IPs will be out of order in Wireguard
+        # so the change sorts the IPs and gets the last one
+        LASTIPV4=$(grep "/32" ${WIREGUARD_CONFIG} | awk '{print $3}' | cut -d "/" -f 1 | cut -d "." -f 4 | sort | tail -n1)
+        LASTIPV6=$(grep "/128" ${WIREGUARD_CONFIG} | awk '{print $3}' | cut -d ":" -f 5 | cut -d "/" -f 1 | sort | tail -n1)
+
+      fi
       if { [ -z "${LASTIPV4}" ] && [ -z "${LASTIPV6}" ]; }; then
         LASTIPV4="2"
         LASTIPV6="2"
@@ -1147,8 +1161,14 @@ else
       MTU_CHOICE=$(head -n1 ${WIREGUARD_CONFIG} | awk '{print $7}')
       NAT_CHOICE=$(head -n1 ${WIREGUARD_CONFIG} | awk '{print $8}')
       CLIENT_ALLOWED_IP=$(head -n1 ${WIREGUARD_CONFIG} | awk '{print $9}')
-      CLIENT_ADDRESS_V4="${PRIVATE_SUBNET_V4::-3}$((LASTIPV4 + 1))"
-      CLIENT_ADDRESS_V6="${PRIVATE_SUBNET_V6::-3}$((LASTIPV6 + 1))"
+      # Check if unused IPs.  Prevents assigning duplicate IPs
+      if [[ "${UNUSED_IPS}" == "" ]] ; then
+        CLIENT_ADDRESS_V4="${PRIVATE_SUBNET_V4::-3}$((LASTIPV4 + 1))"
+        CLIENT_ADDRESS_V6="${PRIVATE_SUBNET_V6::-3}$((LASTIPV6 + 1))"
+      else
+        CLIENT_ADDRESS_V4="${PRIVATE_SUBNET_V4::-3}${LASTIPV4}"
+        CLIENT_ADDRESS_V6="${PRIVATE_SUBNET_V6::-3}${LASTIPV6}"
+      fi
       echo "# ${NEW_CLIENT_NAME} start
 [Peer]
 PublicKey = ${CLIENT_PUBKEY}
@@ -1179,14 +1199,9 @@ PublicKey = ${SERVER_PUBKEY}" >>${WIREGUARD_CLIENT_PATH}/"${NEW_CLIENT_NAME}"-${
           echo "$(date +%M) $(date +%H) $(date +%d) $(date +%m) * echo -e \"${NEW_CLIENT_NAME}\" | $(realpath "${0}") --remove"
         } | crontab -
       fi
-      # Service Restart
-      if pgrep systemd-journal; then
-        systemctl reenable wg-quick@${WIREGUARD_PUB_NIC}
-        systemctl restart wg-quick@${WIREGUARD_PUB_NIC}
-      else
-        service wg-quick@${WIREGUARD_PUB_NIC} enable
-        service wg-quick@${WIREGUARD_PUB_NIC} restart
-      fi
+      # Restarting is not necessary due to the use of 'wg-quick strip' on line 1195.
+      # This prevents disrupting existing connections.  It is similar to the use of
+      # it on line 1216 from a previous Pull Request #139 when removing a client.
       qrencode -t ansiutf8 -r ${WIREGUARD_CLIENT_PATH}/"${NEW_CLIENT_NAME}"-${WIREGUARD_PUB_NIC}.conf
       echo "Client config --> ${WIREGUARD_CLIENT_PATH}/${NEW_CLIENT_NAME}-${WIREGUARD_PUB_NIC}.conf"
       ;;
