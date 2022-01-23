@@ -12,6 +12,11 @@ function super-user-check() {
 # Check for root
 super-user-check
 
+# Get the user passed via the CLI
+if [[ "${2}" != "" ]]; then
+  CLI_CLIENT=$(echo ${2})
+fi
+
 # Get the current system information
 function system-information() {
   if [ -f /etc/os-release ]; then
@@ -250,7 +255,15 @@ function usage() {
   done
 }
 
-usage "$@"
+# If --add or --remove has an argument after it, pass the respective
+# argument to the usage function and jump to the --add or --remove
+# option.
+if [[ "${1}" =~ ^(--add|--remove)$ && ${CLI_CLIENT} != "" ]]; then
+  usage "${1}"
+else
+  usage "$@"
+fi
+
 
 # All questions are skipped, and wireguard is installed and a configuration is generated.
 function headless-install() {
@@ -1093,12 +1106,16 @@ else
       fi
       ;;
     5) # WireGuard add Peer
-      if [ -z "${NEW_CLIENT_NAME}" ]; then
-        echo "Let's name the WireGuard Peer. Use one word only, no special characters, no spaces."
-        read -rp "New client peer:" -e -i "$(openssl rand -hex 25)" NEW_CLIENT_NAME
-      fi
-      if [ -z "${NEW_CLIENT_NAME}" ]; then
-        NEW_CLIENT_NAME="$(openssl rand -hex 50)"
+      if [[ ${CLI_CLIENT} == "" ]]; then
+        if [ -z "${NEW_CLIENT_NAME}" ]; then
+          echo "Let's name the WireGuard Peer. Use one word only, no special characters, no spaces."
+          read -rp "New client peer:" -e -i "$(openssl rand -hex 25)" NEW_CLIENT_NAME
+        fi
+        if [ -z "${NEW_CLIENT_NAME}" ]; then
+          NEW_CLIENT_NAME="$(openssl rand -hex 50)"
+        fi
+      else 
+        NEW_CLIENT_NAME=${CLI_CLIENT}
       fi
       LASTIPV4=$(grep "/32" ${WIREGUARD_CONFIG} | tail -n1 | awk '{print $3}' | cut -d "/" -f 1 | cut -d "." -f 4)
       LASTIPV6=$(grep "/128" ${WIREGUARD_CONFIG} | tail -n1 | awk '{print $3}' | cut -d ":" -f 5 | cut -d "/" -f 1)
@@ -1188,9 +1205,13 @@ PublicKey = ${SERVER_PUBKEY}" >>${WIREGUARD_CLIENT_PATH}/"${NEW_CLIENT_NAME}"-${
       echo "Client config --> ${WIREGUARD_CLIENT_PATH}/${NEW_CLIENT_NAME}-${WIREGUARD_PUB_NIC}.conf"
       ;;
     6) # Remove WireGuard Peer
-      echo "Which WireGuard peer would you like to remove?"
-      grep start ${WIREGUARD_CONFIG} | awk '{print $2}'
-      read -rp "Peer's name:" REMOVECLIENT
+      if [[ ${CLI_CLIENT} == "" ]]; then
+        echo "Which WireGuard peer would you like to remove?"
+        grep start ${WIREGUARD_CONFIG} | awk '{print $2}'
+        read -rp "Peer's name:" REMOVECLIENT
+      else
+        REMOVECLIENT=${CLI_CLIENT}
+      fi
       CLIENTKEY=$(sed -n "/\# ${REMOVECLIENT} start/,/\# ${REMOVECLIENT} end/p" ${WIREGUARD_CONFIG} | grep PublicKey | awk '{print $3}')
       wg set ${WIREGUARD_PUB_NIC} peer "${CLIENTKEY}" remove
       sed -i "/\# ${REMOVECLIENT} start/,/\# ${REMOVECLIENT} end/d" ${WIREGUARD_CONFIG}
