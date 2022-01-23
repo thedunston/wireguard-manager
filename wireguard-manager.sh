@@ -1159,7 +1159,7 @@ else
       MTU_CHOICE=$(head -n1 ${WIREGUARD_CONFIG} | awk '{print $7}')
       NAT_CHOICE=$(head -n1 ${WIREGUARD_CONFIG} | awk '{print $8}')
       CLIENT_ALLOWED_IP=$(head -n1 ${WIREGUARD_CONFIG} | awk '{print $9}')
-      # Check for any unused IP addresses.
+      # Check for any unused IP address.
       if [ -z "${FIND_UNUSED_IP}" ]; then
         CLIENT_ADDRESS_V4=$(echo "${PRIVATE_SUBNET_V4}" | cut -d'.' -f1-3).$((LASTIPV4 + 1))
         CLIENT_ADDRESS_V6="${PRIVATE_SUBNET_V6::-3}$((LASTIPV6 + 1))"
