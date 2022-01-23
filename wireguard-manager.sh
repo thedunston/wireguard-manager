@@ -1100,9 +1100,9 @@ else
       if [ -z "${NEW_CLIENT_NAME}" ]; then
         NEW_CLIENT_NAME="$(openssl rand -hex 50)"
       fi
-      # Check if there is an unused IP. When a user is deleted, a gap may exist leaving unused IPs.
+      # Look for an unused IP address.
       UNUSED_IPS=$(grep -E -o "^AllowedIPs = $(head -n1 ${WIREGUARD_CONFIG} | awk ' { print $2 } ' | cut -d\. -f1,2,3)\.[0-9]{1,3}" ${WIREGUARD_CONFIG} | awk ' { print $3 } ' | cut -d\. -f4 | sort -n | awk '{for(i=p+1; i<$1; i++) print i} {p=$1}' | grep -E -v '^1$')
-      if [[ "${UNUSED_IPS}" != "" ]]; then
+      if [ "${#UNUSED_IPS}" -ge 1 ]; then
         LASTIPV4=$(echo "${UNUSED_IPS}" | head -n 1)
         LASTIPV6=$(echo "${UNUSED_IPS}" | head -n 1)
       else
