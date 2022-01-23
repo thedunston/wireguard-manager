@@ -1102,7 +1102,7 @@ else
       fi
       # Look for an unused IP address.
       FIND_UNUSED_IP=$(grep -E -o "^AllowedIPs = $(head -n1 ${WIREGUARD_CONFIG} | awk '{print $2}' | cut -d\. -f1,2,3)\.[0-9]{1,3}" ${WIREGUARD_CONFIG} | awk '{print $3}' | cut -d\. -f4 | sort -n | awk '{for(i=p+1; i<$1; i++) print i} {p=$1}' | grep -E -v '^1$')
-      if [ "${#FIND_UNUSED_IP}" -ge 1 ]; then
+      if [ -n "${FIND_UNUSED_IP}" ]; then
         LASTIPV4=$(echo "${FIND_UNUSED_IP}" | head -n 1)
         LASTIPV6=$(echo "${FIND_UNUSED_IP}" | head -n 1)
       else
@@ -1160,7 +1160,7 @@ else
       NAT_CHOICE=$(head -n1 ${WIREGUARD_CONFIG} | awk '{print $8}')
       CLIENT_ALLOWED_IP=$(head -n1 ${WIREGUARD_CONFIG} | awk '{print $9}')
       # Check for any unused IP addresses.
-      if [ "${#FIND_UNUSED_IP}" -eq 0 ]; then
+      if [ -z "${FIND_UNUSED_IP}" ]; then
         CLIENT_ADDRESS_V4=$(echo "${PRIVATE_SUBNET_V4}" | cut -d'.' -f1-3).$((LASTIPV4 + 1))
         CLIENT_ADDRESS_V6="${PRIVATE_SUBNET_V6::-3}$((LASTIPV6 + 1))"
       else
