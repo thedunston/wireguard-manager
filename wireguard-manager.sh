@@ -1101,7 +1101,7 @@ else
         NEW_CLIENT_NAME="$(openssl rand -hex 50)"
       fi
       # Look for an unused IP address.
-      FIND_UNUSED_IP=$(grep -E -o "^AllowedIPs = $(head -n1 ${WIREGUARD_CONFIG} | awk '{print $2}' | cut -d\. -f1,2,3)\.[0-9]{1,3}" ${WIREGUARD_CONFIG} | awk '{print $3}' | cut -d\. -f4 | sort -n | awk '{for(i=p+1; i<$1; i++) print i} {p=$1}' | grep -E -v '^1$')
+      FIND_UNUSED_IP=$(grep "AllowedIPs" ${WIREGUARD_CONFIG} | awk '{print $3}' | cut -d '/' -f 1 | sort | cut -d '.' -f 4 | awk '{for(i=p+1; i<$1; i++) print i} {p=$1}' | grep -v '1$')
       if [ -n "${FIND_UNUSED_IP}" ]; then
         LASTIPV4=$(echo "${FIND_UNUSED_IP}" | head -n 1)
         LASTIPV6=$(echo "${FIND_UNUSED_IP}" | head -n 1)
