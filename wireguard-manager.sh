@@ -1103,10 +1103,11 @@ else
       LASTIPV4=$(grep "/32" ${WIREGUARD_CONFIG} | tail -n1 | awk '{print $3}' | cut -d "/" -f 1 | cut -d "." -f 4)
       LASTIPV6=$(grep "/128" ${WIREGUARD_CONFIG} | tail -n1 | awk '{print $3}' | cut -d ":" -f 5 | cut -d "/" -f 1)
       # Look for an unused IP address.
-      FIND_UNUSED_IP=$(grep "AllowedIPs" ${WIREGUARD_CONFIG} | awk '{print $3}' | cut -d '/' -f 1 | sort | cut -d '.' -f 4 | awk '{for(i=p+1; i<$1; i++) print i} {p=$1}' | grep -v '1$')
-      if [ -n "${FIND_UNUSED_IP}" ]; then
-        LASTIPV4=$(echo "${FIND_UNUSED_IP}" | head -n 1)
-        LASTIPV6=$(echo "${FIND_UNUSED_IP}" | head -n 1)
+      FIND_UNUSED_IPV4=$(grep "AllowedIPs" ${WIREGUARD_CONFIG} | awk '{print $3}' | cut -d '/' -f 1 | sort | cut -d '.' -f 4 | awk '{for(i=p+1; i<$1; i++) print i} {p=$1}' | grep -v '1$')
+      FIND_UNUSED_IPV6=$(grep "AllowedIPs" ${WIREGUARD_CONFIG} | awk '{print $3}' | cut -d ',' -f 2 | cut -d '/' -f 1 | sort | cut -d ':' -f 5 | awk '{for(i=p+1; i<$1; i++) print i} {p=$1}' | grep -v '1$')
+      if { [ -n "${FIND_UNUSED_IPV4}" ] && [ -n "${FIND_UNUSED_IPV6}" ]; }; then
+        LASTIPV4=$(echo "${FIND_UNUSED_IPV4}" | head -n 1)
+        LASTIPV6=$(echo "${FIND_UNUSED_IPV6}" | head -n 1)
       fi
       if { [ -z "${LASTIPV4}" ] && [ -z "${LASTIPV6}" ]; }; then
         LASTIPV4="1"
@@ -1161,7 +1162,7 @@ else
       CLIENT_ADDRESS_V4=$(echo "${PRIVATE_SUBNET_V4}" | cut -d'.' -f1-3).$((LASTIPV4 + 1))
       CLIENT_ADDRESS_V6="${PRIVATE_SUBNET_V6::-3}$((LASTIPV6 + 1))"
       # Check for any unused IP address.
-      if [ -n "${FIND_UNUSED_IP}" ]; then
+      if { [ -n "${FIND_UNUSED_IPV4}" ] && [ -n "${FIND_UNUSED_IPV6}" ]; }; then
         CLIENT_ADDRESS_V4="${PRIVATE_SUBNET_V4::-3}${LASTIPV4}"
         CLIENT_ADDRESS_V6="${PRIVATE_SUBNET_V6::-3}${LASTIPV6}"
       fi
