@@ -1100,14 +1100,13 @@ else
       if [ -z "${NEW_CLIENT_NAME}" ]; then
         NEW_CLIENT_NAME="$(openssl rand -hex 50)"
       fi
+      LASTIPV4=$(grep "/32" ${WIREGUARD_CONFIG} | tail -n1 | awk '{print $3}' | cut -d "/" -f 1 | cut -d "." -f 4)
+      LASTIPV6=$(grep "/128" ${WIREGUARD_CONFIG} | tail -n1 | awk '{print $3}' | cut -d ":" -f 5 | cut -d "/" -f 1)
       # Look for an unused IP address.
       FIND_UNUSED_IP=$(grep "AllowedIPs" ${WIREGUARD_CONFIG} | awk '{print $3}' | cut -d '/' -f 1 | sort | cut -d '.' -f 4 | awk '{for(i=p+1; i<$1; i++) print i} {p=$1}' | grep -v '1$')
       if [ -n "${FIND_UNUSED_IP}" ]; then
         LASTIPV4=$(echo "${FIND_UNUSED_IP}" | head -n 1)
         LASTIPV6=$(echo "${FIND_UNUSED_IP}" | head -n 1)
-      else
-        LASTIPV4=$(grep "/32" ${WIREGUARD_CONFIG} | tail -n1 | awk '{print $3}' | cut -d "/" -f 1 | cut -d "." -f 4)
-        LASTIPV6=$(grep "/128" ${WIREGUARD_CONFIG} | tail -n1 | awk '{print $3}' | cut -d ":" -f 5 | cut -d "/" -f 1)
       fi
       if { [ -z "${LASTIPV4}" ] && [ -z "${LASTIPV6}" ]; }; then
         LASTIPV4="1"
@@ -1159,11 +1158,10 @@ else
       MTU_CHOICE=$(head -n1 ${WIREGUARD_CONFIG} | awk '{print $7}')
       NAT_CHOICE=$(head -n1 ${WIREGUARD_CONFIG} | awk '{print $8}')
       CLIENT_ALLOWED_IP=$(head -n1 ${WIREGUARD_CONFIG} | awk '{print $9}')
+      CLIENT_ADDRESS_V4=$(echo "${PRIVATE_SUBNET_V4}" | cut -d'.' -f1-3).$((LASTIPV4 + 1))
+      CLIENT_ADDRESS_V6="${PRIVATE_SUBNET_V6::-3}$((LASTIPV6 + 1))"
       # Check for any unused IP address.
-      if [ -z "${FIND_UNUSED_IP}" ]; then
-        CLIENT_ADDRESS_V4=$(echo "${PRIVATE_SUBNET_V4}" | cut -d'.' -f1-3).$((LASTIPV4 + 1))
-        CLIENT_ADDRESS_V6="${PRIVATE_SUBNET_V6::-3}$((LASTIPV6 + 1))"
-      else
+      if [ -n "${FIND_UNUSED_IP}" ]; then
         CLIENT_ADDRESS_V4="${PRIVATE_SUBNET_V4::-3}${LASTIPV4}"
         CLIENT_ADDRESS_V6="${PRIVATE_SUBNET_V6::-3}${LASTIPV6}"
       fi
