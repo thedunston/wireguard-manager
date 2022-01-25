@@ -647,7 +647,7 @@ if [ ! -f "${WIREGUARD_CONFIG}" ]; then
   # real-time backup
   enable-automatic-backup
 
-  # Would you like to install unbound.
+  # Would you like to install unbound?
   function ask-install-dns() {
     echo "Which DNS provider would you like to use?"
     echo "  1) Unbound (Recommended)"
