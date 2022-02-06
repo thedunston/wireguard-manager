@@ -28,22 +28,22 @@ system-information
 # Pre-Checks system requirements
 function installing-system-requirements() {
   if { [ "${CURRENT_DISTRO}" == "ubuntu" ] || [ "${CURRENT_DISTRO}" == "debian" ] || [ "${CURRENT_DISTRO}" == "raspbian" ] || [ "${CURRENT_DISTRO}" == "pop" ] || [ "${CURRENT_DISTRO}" == "kali" ] || [ "${CURRENT_DISTRO}" == "linuxmint" ] || [ "${CURRENT_DISTRO}" == "neon" ] || [ "${CURRENT_DISTRO}" == "fedora" ] || [ "${CURRENT_DISTRO}" == "centos" ] || [ "${CURRENT_DISTRO}" == "rhel" ] || [ "${CURRENT_DISTRO}" == "almalinux" ] || [ "${CURRENT_DISTRO}" == "rocky" ] || [ "${CURRENT_DISTRO}" == "arch" ] || [ "${CURRENT_DISTRO}" == "archarm" ] || [ "${CURRENT_DISTRO}" == "manjaro" ] || [ "${CURRENT_DISTRO}" == "alpine" ] || [ "${CURRENT_DISTRO}" == "freebsd" ]; }; then
-    if { [ ! -x "$(command -v curl)" ] || [ ! -x "$(command -v cut)" ] || [ ! -x "$(command -v jq)" ] || [ ! -x "$(command -v ip)" ] || [ ! -x "$(command -v lsof)" ] || [ ! -x "$(command -v cron)" ] || [ ! -x "$(command -v awk)" ] || [ ! -x "$(command -v pgrep)" ] || [ ! -x "$(command -v grep)" ] || [ ! -x "$(command -v qrencode)" ] || [ ! -x "$(command -v sed)" ] || [ ! -x "$(command -v zip)" ] || [ ! -x "$(command -v unzip)" ] || [ ! -x "$(command -v openssl)" ] || [ ! -x "$(command -v iptables)" ] || [ ! -x "$(command -v bc)" ] || [ ! -x "$(command -v ifup)" ] || [ ! -x "$(command -v chattr)" ] || [ ! -x "$(command -v gpg)" ] || [ ! -x "$(command -v systemd-detect-virt)" ]; }; then
+    if { [ ! -x "$(command -v curl)" ] || [ ! -x "$(command -v cut)" ] || [ ! -x "$(command -v jq)" ] || [ ! -x "$(command -v ip)" ] || [ ! -x "$(command -v lsof)" ] || [ ! -x "$(command -v cron)" ] || [ ! -x "$(command -v awk)" ] || [ ! -x "$(command -v pgrep)" ] || [ ! -x "$(command -v grep)" ] || [ ! -x "$(command -v qrencode)" ] || [ ! -x "$(command -v sed)" ] || [ ! -x "$(command -v zip)" ] || [ ! -x "$(command -v unzip)" ] || [ ! -x "$(command -v openssl)" ] || [ ! -x "$(command -v iptables)" ] || [ ! -x "$(command -v ifup)" ] || [ ! -x "$(command -v chattr)" ] || [ ! -x "$(command -v gpg)" ] || [ ! -x "$(command -v systemd-detect-virt)" ]; }; then
       if { [ "${CURRENT_DISTRO}" == "ubuntu" ] || [ "${CURRENT_DISTRO}" == "debian" ] || [ "${CURRENT_DISTRO}" == "raspbian" ] || [ "${CURRENT_DISTRO}" == "pop" ] || [ "${CURRENT_DISTRO}" == "kali" ] || [ "${CURRENT_DISTRO}" == "linuxmint" ] || [ "${CURRENT_DISTRO}" == "neon" ]; }; then
         apt-get update
-        apt-get install curl coreutils jq iproute2 lsof cron gawk procps grep qrencode sed zip unzip openssl iptables bc ifupdown e2fsprogs gnupg systemd -y
+        apt-get install curl coreutils jq iproute2 lsof cron gawk procps grep qrencode sed zip unzip openssl iptables ifupdown e2fsprogs gnupg systemd -y
       elif { [ "${CURRENT_DISTRO}" == "fedora" ] || [ "${CURRENT_DISTRO}" == "centos" ] || [ "${CURRENT_DISTRO}" == "rhel" ] || [ "${CURRENT_DISTRO}" == "almalinux" ] || [ "${CURRENT_DISTRO}" == "rocky" ]; }; then
         yum update -y
         yum install epel-release elrepo-release -y
-        yum install curl coreutils jq iproute lsof cronie gawk procps-ng grep qrencode sed zip unzip openssl iptables bc NetworkManager e2fsprogs gnupg systemd -y
+        yum install curl coreutils jq iproute lsof cronie gawk procps-ng grep qrencode sed zip unzip openssl iptables NetworkManager e2fsprogs gnupg systemd -y
       elif { [ "${CURRENT_DISTRO}" == "arch" ] || [ "${CURRENT_DISTRO}" == "archarm" ] || [ "${CURRENT_DISTRO}" == "manjaro" ]; }; then
-        pacman -Syu --noconfirm --needed curl coreutils jq iproute2 lsof cronie gawk procps-ng grep qrencode sed zip unzip openssl iptables bc ifupdown e2fsprogs gnupg systemd
+        pacman -Syu --noconfirm --needed curl coreutils jq iproute2 lsof cronie gawk procps-ng grep qrencode sed zip unzip openssl iptables ifupdown e2fsprogs gnupg systemd
       elif [ "${CURRENT_DISTRO}" == "alpine" ]; then
         apk update
-        apk add curl coreutils jq iproute2 lsof cronie gawk procps grep qrencode sed zip unzip openssl iptables bc ifupdown e2fsprogs gnupg systemd
+        apk add curl coreutils jq iproute2 lsof cronie gawk procps grep qrencode sed zip unzip openssl iptables ifupdown e2fsprogs gnupg systemd
       elif [ "${CURRENT_DISTRO}" == "freebsd" ]; then
         pkg update
-        pkg install curl coreutils jq iproute2 lsof cronie gawk procps grep qrencode sed zip unzip openssl iptables bc ifupdown e2fsprogs gnupg systemd
+        pkg install curl coreutils jq iproute2 lsof cronie gawk procps grep qrencode sed zip unzip openssl iptables ifupdown e2fsprogs gnupg systemd
       fi
     fi
   else
@@ -59,7 +59,7 @@ installing-system-requirements
 function virt-check() {
   # Deny certain virtualization
   case $(systemd-detect-virt) in
-  "kvm" | "none" | "qemu") ;;
+  "kvm" | "none" | "qemu" | "lxc" | "microsoft") ;;
   *)
     echo "$(systemd-detect-virt) virtualization is not supported (yet)."
     exit
@@ -73,10 +73,20 @@ virt-check
 # Lets check the kernel version
 function kernel-check() {
   CURRENT_KERNEL_VERSION=$(uname -r | cut -d'.' -f1-2)
+  CURRENT_KERNEL_MAJOR_VERSION=$(echo "${CURRENT_KERNEL_VERSION}" | cut -d'.' -f1)
+  CURRENT_KERNEL_MINOR_VERSION=$(echo "${CURRENT_KERNEL_VERSION}" | cut -d'.' -f2)
   ALLOWED_KERNEL_VERSION="3.1"
-  if (($(echo "${CURRENT_KERNEL_VERSION} <= ${ALLOWED_KERNEL_VERSION}" | bc -l))); then
+  ALLOWED_KERNEL_MAJOR_VERSION=$(echo ${ALLOWED_KERNEL_VERSION} | cut -d'.' -f1)
+  ALLOWED_KERNEL_MINOR_VERSION=$(echo ${ALLOWED_KERNEL_VERSION} | cut -d'.' -f2)
+  if [ "${CURRENT_KERNEL_MAJOR_VERSION}" -lt "${ALLOWED_KERNEL_MAJOR_VERSION}" ]; then
     echo "Error: Kernel ${CURRENT_KERNEL_VERSION} not supported, please update to ${ALLOWED_KERNEL_VERSION}."
     exit
+  fi
+  if [ "${CURRENT_KERNEL_MAJOR_VERSION}" == "${ALLOWED_KERNEL_MAJOR_VERSION}" ]; then
+    if [ "${CURRENT_KERNEL_MINOR_VERSION}" -lt "${ALLOWED_KERNEL_MINOR_VERSION}" ]; then
+      echo "Error: Kernel ${CURRENT_KERNEL_VERSION} not supported, please update to ${ALLOWED_KERNEL_VERSION}."
+      exit
+    fi
   fi
 }
 
@@ -353,18 +363,18 @@ if [ ! -f "${WIREGUARD_CONFIG}" ]; then
     done
     case ${SERVER_HOST_V4_SETTINGS} in
     1)
-      SERVER_HOST_V4="$(curl -4 --connect-timeout 5.00 -s 'https://api.ipengine.dev' | jq -r '.network.ip')"
+      SERVER_HOST_V4="$(curl -4 --connect-timeout 5 --tlsv1.3 -s 'https://api.ipengine.dev' | jq -r '.network.ip')"
       if [ -z "${SERVER_HOST_V4}" ]; then
-        SERVER_HOST_V4="$(curl -4 --connect-timeout 5.00 -s 'https://checkip.amazonaws.com')"
+        SERVER_HOST_V4="$(curl -4 --connect-timeout 5 --tlsv1.3 -s 'https://checkip.amazonaws.com')"
       fi
       ;;
     2)
       read -rp "Custom IPv4:" SERVER_HOST_V4
       if [ -z "${SERVER_HOST_V4}" ]; then
-        SERVER_HOST_V4="$(curl -4 --connect-timeout 5.00 -s 'https://api.ipengine.dev' | jq -r '.network.ip')"
+        SERVER_HOST_V4="$(curl -4 --connect-timeout 5 --tlsv1.3 -s 'https://api.ipengine.dev' | jq -r '.network.ip')"
       fi
       if [ -z "${SERVER_HOST_V4}" ]; then
-        SERVER_HOST_V4="$(curl -4 --connect-timeout 5.00 -s 'https://checkip.amazonaws.com')"
+        SERVER_HOST_V4="$(curl -4 --connect-timeout 5 --tlsv1.3 -s 'https://checkip.amazonaws.com')"
       fi
       ;;
     esac
@@ -383,18 +393,18 @@ if [ ! -f "${WIREGUARD_CONFIG}" ]; then
     done
     case ${SERVER_HOST_V6_SETTINGS} in
     1)
-      SERVER_HOST_V6="$(curl -6 --connect-timeout 5.00 -s 'https://api.ipengine.dev' | jq -r '.network.ip')"
+      SERVER_HOST_V6="$(curl -6 --connect-timeout 5 --tlsv1.3 -s 'https://api.ipengine.dev' | jq -r '.network.ip')"
       if [ -z "${SERVER_HOST_V6}" ]; then
-        SERVER_HOST_V6="$(curl -6 --connect-timeout 5.00 -s 'https://checkip.amazonaws.com')"
+        SERVER_HOST_V6="$(curl -6 --connect-timeout 5 --tlsv1.3 -s 'https://checkip.amazonaws.com')"
       fi
       ;;
     2)
       read -rp "Custom IPv6:" SERVER_HOST_V6
       if [ -z "${SERVER_HOST_V6}" ]; then
-        SERVER_HOST_V6="$(curl -6 --connect-timeout 5.00 -s 'https://api.ipengine.dev' | jq -r '.network.ip')"
+        SERVER_HOST_V6="$(curl -6 --connect-timeout 5 --tlsv1.3 -s 'https://api.ipengine.dev' | jq -r '.network.ip')"
       fi
       if [ -z "${SERVER_HOST_V6}" ]; then
-        SERVER_HOST_V6="$(curl -6 --connect-timeout 5.00 -s 'https://checkip.amazonaws.com')"
+        SERVER_HOST_V6="$(curl -6 --connect-timeout 5 --tlsv1.3 -s 'https://checkip.amazonaws.com')"
       fi
       ;;
     esac
@@ -740,7 +750,7 @@ if [ ! -f "${WIREGUARD_CONFIG}" ]; then
   function client-name() {
     if [ -z "${CLIENT_NAME}" ]; then
       echo "Let's name the WireGuard Peer. Use one word only, no special characters, no spaces."
-      read -rp "Client name:" -e -i "$(openssl rand -hex 25)" CLIENT_NAME
+      read -rp "Client name:" -e -i "$(openssl rand -hex 50)" CLIENT_NAME
     fi
     if [ -z "${CLIENT_NAME}" ]; then
       CLIENT_NAME="$(openssl rand -hex 50)"
@@ -774,7 +784,23 @@ if [ ! -f "${WIREGUARD_CONFIG}" ]; then
   # Lets check the kernel version and check if headers are required
   function install-kernel-headers() {
     ALLOWED_KERNEL_VERSION="5.6"
-    if (($(echo "${CURRENT_KERNEL_VERSION} <= ${ALLOWED_KERNEL_VERSION}" | bc -l))); then
+    ALLOWED_KERNEL_MAJOR_VERSION=$(echo ${ALLOWED_KERNEL_VERSION} | cut -d'.' -f1)
+    ALLOWED_KERNEL_MINOR_VERSION=$(echo ${ALLOWED_KERNEL_VERSION} | cut -d'.' -f2)
+    if [ "${CURRENT_KERNEL_MAJOR_VERSION}" -le "${ALLOWED_KERNEL_MAJOR_VERSION}" ]; then
+      INSTALL_LINUX_HEADERS=true
+    fi
+    if [ "${CURRENT_KERNEL_MAJOR_VERSION}" -gt "${ALLOWED_KERNEL_MAJOR_VERSION}" ]; then
+      INSTALL_LINUX_HEADERS=false
+    fi
+    if [ "${CURRENT_KERNEL_MAJOR_VERSION}" == "${ALLOWED_KERNEL_MAJOR_VERSION}" ]; then
+      if [ "${CURRENT_KERNEL_MINOR_VERSION}" -lt "${ALLOWED_KERNEL_MINOR_VERSION}" ]; then
+        INSTALL_LINUX_HEADERS=true
+      fi
+      if [ "${CURRENT_KERNEL_MINOR_VERSION}" -ge "${ALLOWED_KERNEL_MINOR_VERSION}" ]; then
+        INSTALL_LINUX_HEADERS=false
+      fi
+    fi
+    if [ "${INSTALL_LINUX_HEADERS}" == true ]; then
       if { [ "${CURRENT_DISTRO}" == "ubuntu" ] || [ "${CURRENT_DISTRO}" == "debian" ] || [ "${CURRENT_DISTRO}" == "pop" ] || [ "${CURRENT_DISTRO}" == "kali" ] || [ "${CURRENT_DISTRO}" == "linuxmint" ] || [ "${CURRENT_DISTRO}" == "neon" ]; }; then
         apt-get update
         apt-get install linux-headers-"$(uname -r)" -y
@@ -790,8 +816,6 @@ if [ ! -f "${WIREGUARD_CONFIG}" ]; then
         yum update -y
         yum install kernel-headers-"$(uname -r)" kernel-devel-"$(uname -r)" -y
       fi
-    else
-      echo "Correct: You do not need kernel headers." >>/dev/null
     fi
   }
 
@@ -888,7 +912,7 @@ if [ ! -f "${WIREGUARD_CONFIG}" ]; then
             fi
           fi
         elif { [ "${CURRENT_DISTRO}" == "centos" ] || [ "${CURRENT_DISTRO}" == "rhel" ] || [ "${CURRENT_DISTRO}" == "almalinux" ] || [ "${CURRENT_DISTRO}" == "rocky" ]; }; then
-          yum install unbound resolvconf -y
+          yum install unbound -y
         elif [ "${CURRENT_DISTRO}" == "fedora" ]; then
           dnf install unbound resolvconf -y
         elif { [ "${CURRENT_DISTRO}" == "arch" ] || [ "${CURRENT_DISTRO}" == "archarm" ] || [ "${CURRENT_DISTRO}" == "manjaro" ]; }; then
@@ -1095,7 +1119,7 @@ else
     5) # WireGuard add Peer
       if [ -z "${NEW_CLIENT_NAME}" ]; then
         echo "Let's name the WireGuard Peer. Use one word only, no special characters, no spaces."
-        read -rp "New client peer:" -e -i "$(openssl rand -hex 25)" NEW_CLIENT_NAME
+        read -rp "New client peer:" -e -i "$(openssl rand -hex 50)" NEW_CLIENT_NAME
       fi
       if [ -z "${NEW_CLIENT_NAME}" ]; then
         NEW_CLIENT_NAME="$(openssl rand -hex 50)"
@@ -1317,11 +1341,11 @@ PublicKey = ${SERVER_PUBKEY}" >>${WIREGUARD_CLIENT_PATH}/"${NEW_CLIENT_NAME}"-${
           mv ${RESOLV_CONFIG_OLD} ${RESOLV_CONFIG}
           chattr +i ${RESOLV_CONFIG}
         fi
-        if { [ "${CURRENT_DISTRO}" == "centos" ] || [ "${CURRENT_DISTRO}" == "rhel" ]; }; then
+        if { [ "${CURRENT_DISTRO}" == "centos" ] || [ "${CURRENT_DISTRO}" == "rhel" ] || [ "${CURRENT_DISTRO}" == "almalinux" ] || [ "${CURRENT_DISTRO}" == "rocky" ]; }; then
           yum remove unbound -y
         elif { [ "${CURRENT_DISTRO}" == "debian" ] || [ "${CURRENT_DISTRO}" == "pop" ] || [ "${CURRENT_DISTRO}" == "ubuntu" ] || [ "${CURRENT_DISTRO}" == "raspbian" ] || [ "${CURRENT_DISTRO}" == "kali" ] || [ "${CURRENT_DISTRO}" == "linuxmint" ] || [ "${CURRENT_DISTRO}" == "neon" ]; }; then
           apt-get remove --purge unbound -y
-        elif { [ "${CURRENT_DISTRO}" == "arch" ] || [ "${CURRENT_DISTRO}" == "archarm" ] || [ "${CURRENT_DISTRO}" == "manjaro" ] || [ "${CURRENT_DISTRO}" == "almalinux" ] || [ "${CURRENT_DISTRO}" == "rocky" ]; }; then
+        elif { [ "${CURRENT_DISTRO}" == "arch" ] || [ "${CURRENT_DISTRO}" == "archarm" ] || [ "${CURRENT_DISTRO}" == "manjaro" ]; }; then
           pacman -Rs --noconfirm unbound
         elif [ "${CURRENT_DISTRO}" == "fedora" ]; then
           dnf remove unbound -y
@@ -1372,7 +1396,7 @@ PublicKey = ${SERVER_PUBKEY}" >>${WIREGUARD_CLIENT_PATH}/"${NEW_CLIENT_NAME}"-${
         rm -f ${WIREGUARD_CONFIG_BACKUP}
       fi
       if [ -d "${WIREGUARD_PATH}" ]; then
-        BACKUP_PASSWORD="$(openssl rand -hex 25)"
+        BACKUP_PASSWORD="$(openssl rand -hex 50)"
         echo "${BACKUP_PASSWORD}" >"${WIREGUARD_BACKUP_PASSWORD_PATH}"
         zip -P "${BACKUP_PASSWORD}" -rj ${WIREGUARD_CONFIG_BACKUP} ${WIREGUARD_CONFIG}
       fi
@@ -1393,9 +1417,9 @@ PublicKey = ${SERVER_PUBKEY}" >>${WIREGUARD_CLIENT_PATH}/"${NEW_CLIENT_NAME}"-${
       ;;
     12) # Change the IP address of your wireguard interface.
       OLD_SERVER_HOST=$(head -n1 ${WIREGUARD_CONFIG} | awk '{print $4}' | awk -F: '{print $1}')
-      NEW_SERVER_HOST="$(curl -4 --connect-timeout 5.00 -s 'https://api.ipengine.dev' | jq -r '.network.ip')"
+      NEW_SERVER_HOST="$(curl -4 --connect-timeout 5 --tlsv1.3 -s 'https://api.ipengine.dev' | jq -r '.network.ip')"
       if [ -z "${NEW_SERVER_HOST}" ]; then
-        NEW_SERVER_HOST="$(curl -4 --connect-timeout 5.00 -s 'https://checkip.amazonaws.com')"
+        NEW_SERVER_HOST="$(curl -4 --connect-timeout 5 --tlsv1.3 -s 'https://checkip.amazonaws.com')"
       fi
       sed -i "1s/${OLD_SERVER_HOST}/${NEW_SERVER_HOST}/" ${WIREGUARD_CONFIG}
       ;;

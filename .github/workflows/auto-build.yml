@@ -12,8 +12,6 @@ jobs:
         uses: actions/checkout@v2
       - name: Curl example.net
         run: curl -I https://www.example.net
-      - name: Change systemd-detect-virt to enable the github workflow
-        run: sudo sed -i 's/"kvm" | "none" | "qemu"/"kvm" | "none" | "qemu" | "microsoft"/g' wireguard-manager.sh
       - name: Install wireguard via wireguard-manager
         run: sudo ./wireguard-manager.sh --install
       - name: Start wireguard service
@@ -24,8 +22,8 @@ jobs:
         run: sudo ./wireguard-manager.sh --restart
       - name: View WireGuard status
         run: sudo systemctl status wg-quick@wg0
-      - name: Add a new WireGuard peer
-        run: echo -e "\n" | sudo ./wireguard-manager.sh --add
+      - name: Add 500 wireguard peers to the mix
+        run: for i in {1..500}; do echo -e "\n" | sudo ./wireguard-manager.sh --add; done
       - name: Test wireguard-manager ddns.
         run: sudo ./wireguard-manager.sh --ddns
       - name: Test wireguard-manager backup.
